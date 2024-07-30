@@ -3,13 +3,17 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
+	"rest-api/db"
 	"rest-api/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	os.Setenv("CGO_ENABLED", "1")
+	db.InitDB()
 	server := gin.Default()
 
 	server.GET("/events", getEvents) // GET POST PUTE PATCH DELETE etc
