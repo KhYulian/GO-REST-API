@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"rest-api/db"
 	"rest-api/models"
@@ -17,15 +18,36 @@ func main() {
 	server := gin.Default()
 
 	server.GET("/events", getEvents) // GET POST PUTE PATCH DELETE etc
+	server.GET("/events/:eventID", getOneEvent)
 	server.POST("/events", createEvent)
 
 	server.Run(":8080") // PORT 8080 on localhost
 }
 
 func getEvents(context *gin.Context) {
-	events := models.GetAllEvents()
+	events, err := models.GetAllEvents()
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("An error occured while fetching events. Error message: %s", err)})
+		return
+	}
 
 	context.JSON(http.StatusOK, events) // will be automatically transformed to the JSON by the GIN package
+}
+
+func getOneEvent(context *gin.Context) {
+	eventID, err := strconv.ParseInt(context.Param("eventID"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Invalid parameter for eventID. Error message: %s", err)})
+		return
+	}
+
+	event, err := models.GetOneEvent(eventID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Could not fetch the event. Error message: %s", err)})
+		return
+	}
+
+	context.JSON(http.StatusOK, event)
 }
 
 func createEvent(context *gin.Context) {
@@ -41,6 +63,11 @@ func createEvent(context *gin.Context) {
 	event.ID = 1
 	event.UserID = 1
 
-	event.Save()
+	err = event.Save()
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Could not create an event. Error message is: %s", err)})
+		return
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Event created"})
 }
